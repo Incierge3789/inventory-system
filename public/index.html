@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>在庫管理システム</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <h1>在庫管理システム</h1>
+        <form @submit.prevent="addItem" class="form">
+            <input type="text" v-model="newItem.name" placeholder="部品名" class="input">
+            <input type="number" v-model="newItem.stock" placeholder="在庫数" class="input">
+            <input type="file" @change="onFileChange" class="input-file">
+            <button type="submit" class="button">追加</button>
+        </form>
+        <div class="item-list">
+            <div class="item" v-for="item in items" :key="item.id">
+                <img :src="item.photo" alt="部品写真" class="item-photo">
+                <p class="item-name">{{ item.name }}</p>
+                <p class="item-stock">在庫数: {{ item.stock }}</p>
+                <input type="number" v-model.number="item.stock" class="input-stock">
+                <button @click="updateItem(item)" class="button-update">更新</button>
+                <button @click="removeItem(item.id)" class="button-delete">削除</button>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="stockChart"></canvas>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="bundle.js"></script>
+</body>
+</html>
