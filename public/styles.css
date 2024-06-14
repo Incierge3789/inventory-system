@@ -1,19 +1,57 @@
+/* フォントのインポート */
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('fonts/SF-Pro-Display-Regular.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('fonts/SF-Pro-Display-Medium.otf') format('opentype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('fonts/SF-Pro-Display-Bold.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('fonts/SF-Pro-Display-BlackItalic.otf') format('opentype');
+    font-weight: 900;
+    font-style: italic;
+}
+
+/* ベーススタイル */
 body {
-    font-family: 'Roboto', Arial, sans-serif;
+    font-family: 'SF Pro Display', Arial, sans-serif;
     background-color: #f5f5f5;
     margin: 0;
     padding: 0;
     color: #333;
 }
 
+/* アプリのスタイル */
 #app {
     max-width: 800px;
     margin: 0 auto;
     padding: 20px;
     text-align: center;
     background-color: #fff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
+}
+
+header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
 }
 
 h1 {
@@ -22,48 +60,89 @@ h1 {
     color: #007aff;
 }
 
-.form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.input, .input-file, .input-stock {
+/* フォームの横幅と配置を統一 */
+input[type="text"], input[type="number"], select, .button-container {
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 16px;
+    margin-bottom: 10px;
+    width: calc(100% - 22px); /* ここで横幅を統一 */
+    max-width: 300px; /* 最大幅を設定 */
 }
 
-.input-file {
-    padding: 5px;
-}
-
-.button, .button-update, .button-delete {
-    padding: 10px 20px;
+button[type="button"], button[type="submit"] {
+    padding: 10px;
     border: none;
     border-radius: 5px;
     font-size: 16px;
+    margin-bottom: 10px;
     cursor: pointer;
+    width: calc(100% - 22px); /* 横幅を統一 */
+    max-width: 150px; /* 最大幅を設定 */
+}
+
+button[type="button"] {
+    background-color: #007aff;
+    color: white;
+}
+
+button[type="submit"] {
+    background-color: #34c759;
+    color: white;
+}
+
+/* ドロップエリアのスタイル */
+.drop-area {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    text-align: center;
+    margin-top: 10px;
+    cursor: pointer;
+    position: relative; /* 追加: 位置を相対に設定 */
+}
+
+.drop-area.dragover {
+    border-color: #007aff;
+    background-color: #f0f8ff;
+}
+
+.drop-area.file-selected {
+    border-color: #34c759;
+    background-color: #eaffea;
+}
+
+/* ファイル選択ボタンのスタイル */
+.upload-label {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007aff;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.input-file {
+    display: none;
+}
+
+.selected-file-info {
     margin-top: 10px;
 }
 
-.button {
-    background-color: #007aff;
-    color: #fff;
+.selected-file-info p {
+    margin: 5px 0;
 }
 
-.button-update {
-    background-color: #34c759;
-    color: #fff;
+.selected-image {
+    max-width: 100px;
+    max-height: 100px;
+    margin-top: 10px;
+    border-radius: 5px;
 }
 
-.button-delete {
-    background-color: #ff3b30;
-    color: #fff;
-}
-
+/* アイテムリスト */
 .item-list {
     display: flex;
     flex-wrap: wrap;
@@ -77,7 +156,7 @@ h1 {
     width: 200px;
     border-radius: 5px;
     background-color: #fff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -89,17 +168,409 @@ h1 {
     border-radius: 5px;
 }
 
-.item-name {
-    font-weight: 500;
-    margin-top: 10px;
-    margin-bottom: 5px;
+/* カメラモーダルのスタイル */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
 }
 
-.item-stock {
-    font-weight: 400;
-    color: #666;
+.modal-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center; /* テキストを中央揃え */
+    position: relative; /* 枠を表示するための位置を相対に設定 */
 }
 
-.canvas-container {
-    margin-top: 30px;
+.modal video, .modal canvas {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.modal button {
+    background-color: #007aff;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 5px; /* ボタン間の余白を追加 */
+}
+
+.modal button.modal-close {
+    background-color: #ff3b30;
+}
+
+/* 枠のスタイル */
+.detection-frame {
+    position: absolute;
+    border: 2px solid red;
+    pointer-events: none;
+}
+
+.detection-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none; /* これにより、キャンバスがクリックイベントをブロックしないようになります */
+}
+
+/* スマホ対応のメディアクエリ */
+@media (max-width: 600px) {
+    #app {
+        padding: 10px;
+    }
+
+    .item-list {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .item {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .input, .input-file, .input-stock {
+        width: 100%;
+    }
+}
+
+/* タブレット対応のメディアクエリ */
+@media (min-width: 601px) and (max-width: 1024px) {
+    .item-list {
+        flex-wrap: wrap;
+    }
+
+    .item {
+        width: 45%;
+    }
+}
+
+/* デスクトップ対応のメディアクエリ */
+@media (min-width: 1025px) {
+    .item-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: center;
+    }
+
+    .item {
+        width: 200px;
+    }
+}
+
+/* 説明ガイドモーダルのスタイル */
+.guide-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.guide-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center; /* テキストを中央揃え */
+    position: relative; /* 枠を表示するための位置を相対に設定 */
+    font-family: 'SF Pro Display', Arial, sans-serif;
+}
+
+.guide-content h2 {
+    color: #007aff;
+    margin-bottom: 20px;
+}
+
+.guide-content p, .guide-content ul {
+    color: #333;
+    text-align: left;
+}
+
+.guide-content ul {
+    list-style: none;
+    padding: 0;
+}
+
+.guide-content ul li {
+    margin-bottom: 10px;
+}
+
+.guide-content ul li strong {
+    color: #007aff;
+}
+
+.guide-content button {
+    background-color: #007aff;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 10px;
+}
+
+.guide-content button.modal-close {
+    background-color: #ff3b30;
+}
+
+:root {
+    --background-color-light: #ffffff;
+    --text-color-light: #000000;
+    --background-color-dark: #333333;
+    --text-color-dark: #ffffff;
+    --header-bg-color-light: #f5f5f5;
+    --header-bg-color-dark: #444444;
+    --border-color-light: #ccc;
+    --border-color-dark: #555;
+    --input-bg-color-light: #fff;
+    --input-bg-color-dark: #555;
+    --button-bg-color-light: #007aff;
+    --button-bg-color-dark: #005bb5;
+    --button-text-color: #ffffff;
+}
+
+body {
+    background-color: var(--background-color-light);
+    color: var(--text-color-light);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dark-mode {
+    background-color: var(--background-color-dark);
+    color: var(--text-color-dark);
+}
+
+header {
+    background-color: var(--header-bg-color-light);
+    transition: background-color 0.3s ease;
+}
+
+body.dark-mode header {
+    background-color: var(--header-bg-color-dark);
+}
+
+/* フォーム要素のスタイル */
+input, select, .item, .modal-content, .guide-content {
+    background-color: var(--input-bg-color-light);
+    color: var(--text-color-light);
+    border: 1px solid var(--border-color-light);
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+body.dark-mode input, body.dark-mode select, body.dark-mode .item, body.dark-mode .modal-content, body.dark-mode .guide-content {
+    background-color: var(--input-bg-color-dark);
+    color: var(--text-color-dark);
+    border: 1px solid var(--border-color-dark);
+}
+
+/* ボタンのスタイル */
+button[type="button"], button[type="submit"] {
+    background-color: var(--button-bg-color-light);
+    color: var(--button-text-color);
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button[type="button"]:hover, button[type="submit"]:hover {
+    background-color: var(--button-bg-color-dark);
+}
+
+body.dark-mode button[type="button"], body.dark-mode button[type="submit"] {
+    background-color: var(--button-bg-color-dark);
+}
+
+body.dark-mode button[type="button"]:hover, body.dark-mode button[type="submit"]:hover {
+    background-color: var(--button-bg-color-light);
+}
+
+/* チャートのスタイル */
+.axis--x path,
+.axis--y path {
+    stroke: var(--text-color-light);
+}
+
+body.dark-mode .axis--x path,
+body.dark-mode .axis--y path {
+    stroke: var(--text-color-dark);
+}
+
+
+/* リアルタイムフィードバック */
+.hidden {
+    display: none;
+}
+
+#feedbackMessage {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #333;
+    color: #fff;
+    z-index: 1000;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.button:hover {
+    transform: scale(1.05);
+}
+
+.update-button {
+    background-color: #007aff;
+    color: white;
+}
+
+.update-button:hover {
+    background-color: #005bb5;
+}
+
+.delete-button {
+    background-color: #ff3b30;
+    color: white;
+}
+
+.delete-button:hover {
+    background-color: #c42b1c;
+}
+
+/* チャートのスタイル */
+.chart-container {
+    background-color: #f5f5f5; /* 背景色をライトグレーに設定 */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    shape-rendering: crispEdges;
+    stroke: #ccc; /* 軸の色をグレーに設定 */
+}
+
+.bar {
+    fill: #007aff; /* バーの色をアップルブルーに設定 */
+}
+
+.axis-title {
+    fill: #333; /* 軸タイトルの色をダークグレーに設定 */
+}
+
+.text {
+    fill: #333; /* テキストの色をダークグレーに設定 */
+}
+
+/* テーマ切り替えボタンのスタイル */
+#toggleTheme {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #007aff;
+    color: white;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    position: fixed;
+    top: 10px;
+    right: 10px;
+}
+
+#toggleTheme:hover {
+    background-color: #005bb5;
+    transform: scale(1.05);
+}
+
+#toggleTheme:active {
+    background-color: #004494;
+    transform: scale(0.95);
+}
+
+/* 棚番号、場所番号追加フォーム */
+.margin-top {
+    margin-top: 20px;
+}
+
+.selection-container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.addition-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+select, input[type="text"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    max-width: 200px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.button {
+    padding: 10px 20px;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.button:hover {
+    transform: scale(1.05);
+    background-color: #005bb5;
 }

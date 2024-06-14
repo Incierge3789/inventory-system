@@ -2,35 +2,120 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://d3js.org 'unsafe-eval'; img-src 'self' data:; style-src 'self' 'unsafe-inline';">
     <title>在庫管理システム</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="app">
-        <h1>在庫管理システム</h1>
-        <form @submit.prevent="addItem" class="form">
-            <input type="text" v-model="newItem.name" placeholder="部品名" class="input">
-            <input type="number" v-model="newItem.stock" placeholder="在庫数" class="input">
-            <input type="file" @change="onFileChange" class="input-file">
-            <button type="submit" class="button">追加</button>
-        </form>
-        <div class="item-list">
-            <div class="item" v-for="item in items" :key="item.id">
-                <img :src="item.photo" alt="部品写真" class="item-photo">
-                <p class="item-name">{{ item.name }}</p>
-                <p class="item-stock">在庫数: {{ item.stock }}</p>
-                <input type="number" v-model.number="item.stock" class="input-stock">
-                <button @click="updateItem(item)" class="button-update">更新</button>
-                <button @click="removeItem(item.id)" class="button-delete">削除</button>
+    <div id="feedbackMessage" class="hidden"></div>
+        <header>
+            <h1>在庫管理システム</h1>
+            <input type="text" id="searchQuery" name="searchQuery" v-model="searchQuery" placeholder="部品名で検索" @input="searchItems">
+            <select id="selectedArea" name="selectedArea" v-model="selectedArea" @change="filterByArea">
+                <option value="">全体</option>
+                <option value="台倉庫">台倉庫</option>
+                <option value="機械室">機械室</option>
+                <option value="カウンター倉庫">カウンター倉庫</option>
+                <option value="備品庫">備品庫</option>
+                <option value="外倉庫">外倉庫</option>
+            </select>
+        </header>
+        <main>
+            <div class="item-list">
+                <div class="item" v-for="item in filteredItems" :key="item.id">
+                    <img :src="item.photo" alt="部品写真" class="item-photo">
+                    <p>{{ item.name }}</p>
+                    <p>在庫数: <input type="number" v-model.number="item.stock" @change="updateItem(item)" /></p>
+                    <p>エリア: <input type="text" v-model="item.area" @change="updateItem(item)" /></p>
+                    <p>棚番号: <input type="text" v-model="item.shelf" @change="updateItem(item)" /></p>
+                    <p>場所番号: <input type="text" v-model="item.location" @change="updateItem(item)" /></p>
+                    <div class="button-group">
+                        <button @click="updateItem(item)" class="button update-button">更新</button>
+                        <button @click="removeItem(item.id)" class="button delete-button">削除</button>
+                    </div>
+                </div>
+            </div>
+            <form @submit.prevent="addItem" class="form">
+                <h2>新しい部品を追加</h2>
+                <input type="text" id="newItemName" name="newItemName" v-model="newItem.name" placeholder="部品名" required class="input">
+                <input type="number" id="newItemStock" name="newItemStock" v-model="newItem.stock" placeholder="在庫数" required class="input-stock">
+                <div class="upload-container">
+                    <div ref="dropArea" class="drop-area" :class="{ 'file-selected': newItem.photo }">
+                        ここにファイルをドロップするか、<label for="newItemPhoto" class="upload-label">ファイルを選択</label> または 
+                        <button type="button" @click="openCamera" class="button">カメラを起動</button>
+                        <div v-if="newItem.photo" class="selected-file-info">
+                            <p>選択されたファイル: {{ newItem.fileName }}</p>
+                            <img :src="newItem.photo" alt="選択された画像" class="selected-image">
+                        </div>
+                    </div>
+                    <input type="file" id="newItemPhoto" name="newItemPhoto" @change="onFileChange" class="input-file">
+                </div>
+                <!-- 追加: マージンを確保するためのクラスを追加 -->
+                <div class="selection-container margin-top">
+                    <select id="newItemArea" name="newItemArea" v-model="newItem.area" @change="updateShelves" class="input">
+                        <option value="">エリアを選択</option>
+                        <option value="台倉庫">台倉庫</option>
+                        <option value="機械室">機械室</option>
+                        <option value="カウンター倉庫">カウンター倉庫</option>
+                        <option value="備品庫">備品庫</option>
+                        <option value="外倉庫">外倉庫</option>
+                    </select>
+                    <select id="newItemShelf" name="newItemShelf" v-model="newItem.shelf" @change="updateLocations" class="input">
+                        <option value="">棚番号を選択</option>
+                        <option v-for="shelf in shelves" :value="shelf">{{ shelf }}</option>
+                    </select>
+                    <select id="newItemLocation" name="newItemLocation" v-model="newItem.location" class="input">
+                        <option value="">場所番号を選択</option>
+                        <option v-for="location in locations" :value="location">{{ location }}</option>
+                    </select>
+                </div>
+                <div class="addition-container">
+                    <input type="text" v-model="newShelf" placeholder="新しい棚番号を追加" />
+                    <button @click="addShelf" class="button">棚番号を追加</button>
+                    <input type="text" v-model="newLocation" placeholder="新しい場所番号を追加" />
+                    <button @click="addLocation" class="button">場所番号を追加</button>
+                </div>
+                <button type="submit" class="button">追加</button>
+            </form>
+        </main>
+        <svg id="stockChart" width="800" height="400"></svg>
+        
+        <!-- カメラモーダル -->
+        <div v-if="showModal" class="modal">
+            <div class="modal-content">
+                <video ref="video" autoplay></video>
+                <canvas ref="detectionCanvas" class="detection-frame"></canvas>
+                <button @click="capturePhoto" class="button">撮影</button>
+                <button @click="closeModal" class="button modal-close">キャンセル</button>
             </div>
         </div>
-        <div class="canvas-container">
-            <canvas id="stockChart"></canvas>
+
+        <!-- 説明ガイドモーダル -->
+        <div v-if="showGuide" class="guide-modal">
+            <div class="guide-content">
+                <h2>ようこそ！</h2>
+                <p>このアプリの使い方を簡単にご案内します。</p>
+                <ul>
+                    <li><strong>部品名で検索</strong>：検索バーに部品名を入力して、素早く在庫を確認。</li>
+                    <li><strong>在庫数の変更</strong>：各部品の在庫数を直接編集して更新。</li>
+                    <li><strong>新しい部品の追加</strong>：
+                        <ul>
+                            <li>部品名、在庫数、エリアを入力</li>
+                            <li>写真をアップロードまたはカメラで撮影</li>
+                        </ul>
+                    </li>
+                    <li><strong>グラフで視覚化</strong>：在庫の変動をグラフで確認。</li>
+                </ul>
+                <button @click="nextGuideStep" class="button">次へ</button>
+                <button @click="closeGuide" class="button modal-close">閉じる</button>
+            </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="bundle.js"></script>
+    <button id="toggleTheme">テーマを切り替える</button>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.37/dist/vue.global.prod.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="js/idb.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
