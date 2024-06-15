@@ -364,18 +364,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             }
             },
-            async function callHelloFunction() {
-                try {
-                    const response = await fetch('/.netlify/functions/hello');
-                    const data = await response.json();
-                    console.log(data.message); // "Hello, World!" と表示されるはずです
-                } catch (error) {
-                    console.error('Error calling hello function:', error);
-                }
-            }
-
-            callHelloFunction();
-
             async mounted() {
                 await this.loadData();
                 this.items.forEach(item => {
@@ -386,8 +374,23 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 // エリア選択変更時のリスナーを追加
                 this.$watch('newItem.area', this.onAreaChange);
-            }
+
+                // 初期データをロード
+                this.updateShelves();
+                this.updateLocations();
+
+                // 関数呼び出し
+                await this.callHelloFunction();
+            },
+            async callHelloFunction() {
+                try {
+                    const response = await fetch('/.netlify/functions/hello');
+                    const data = await response.json();
+                    console.log(data.message); // "Hello, World!" と表示されるはずです
+                } catch (error) {
+                   console.error('Error calling hello function:', error);
+                }
+            },
             });
 
             app.mount('#app');
-            });
