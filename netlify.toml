@@ -1,5 +1,6 @@
 [build]
-  functions = "functions"
+  command = "npm run build"
+  publish = "public"
 
 [build.environment]
   NODE_VERSION = "14"
