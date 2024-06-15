@@ -53,7 +53,7 @@
                 </div>
                 <!-- 追加: マージンを確保するためのクラスを追加 -->
                 <div class="selection-container margin-top">
-                    <select id="newItemArea" name="newItemArea" v-model="newItem.area" @change="updateShelves" class="input">
+                    <select id="newItemArea" name="newItemArea" v-model="newItem.area" @change="onAreaChange" class="input">
                         <option value="">エリアを選択</option>
                         <option value="台倉庫">台倉庫</option>
                         <option value="機械室">機械室</option>
@@ -61,11 +61,11 @@
                         <option value="備品庫">備品庫</option>
                         <option value="外倉庫">外倉庫</option>
                     </select>
-                    <select id="newItemShelf" name="newItemShelf" v-model="newItem.shelf" @change="updateLocations" class="input">
+                    <select id="newItemShelf" name="newItemShelf" v-model="newItem.shelf" @change="newItem.shelf" class="input">
                         <option value="">棚番号を選択</option>
                         <option v-for="shelf in shelves" :value="shelf">{{ shelf }}</option>
                     </select>
-                    <select id="newItemLocation" name="newItemLocation" v-model="newItem.location" class="input">
+                    <select id="newItemLocation" name="newItemLocation" v-model="newItem.location" @change="newItem.location" class="input">
                         <option value="">場所番号を選択</option>
                         <option v-for="location in locations" :value="location">{{ location }}</option>
                     </select>

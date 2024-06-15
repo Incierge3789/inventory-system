@@ -42,44 +42,32 @@ document.addEventListener('DOMContentLoaded', async function () {
         },
         methods: {
             onAreaChange() {
-                // エリア選択に基づいて棚番号と場所番号を設定
-                if (this.newItem.area === '台倉庫') {
-                    this.shelves = ['棚A', '棚B', '棚C', '棚D', '棚E', '棚F', '棚G', '棚H', '棚I', '棚J'];
-                    this.locations = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
-                } else if (this.newItem.area === '機械室') {
-                    this.shelves = ['棚A', '棚B', '棚C', '棚D', '棚E', '棚F', '棚G', '棚H', '棚I', '棚J'];
-                    this.locations = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
-                } else if (this.newItem.area === 'カウンター倉庫') {
-                    this.shelves = ['棚A', '棚B', '棚C', '棚D', '棚E', '棚F', '棚G', '棚H', '棚I', '棚J'];
-                    this.locations = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
-                } else if (this.newItem.area === '備品庫') {
-                    this.shelves = ['棚A', '棚B', '棚C', '棚D', '棚E', '棚F', '棚G', '棚H', '棚I', '棚J'];
-                    this.locations = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
-　　　　　　　　 } else if (this.newItem.area === '外倉庫') {
-                    this.shelves = ['棚A', '棚B', '棚C', '棚D', '棚E', '棚F', '棚G', '棚H', '棚I', '棚J'];
-                    this.locations = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
-                } else {
-                    this.shelves = [];
-                    this.locations = [];
-                }
+               // エリア選択に基づいて棚番号と場所番号を設定
+               if (this.newItem.area === '台倉庫' || this.newItem.area === '機械室' || this.newItem.area === 'カウンター倉庫' || this.newItem.area === '備品庫' || this.newItem.area === '外倉庫') {
+                   this.shelves = ['棚A', '棚B', '棚C', '棚D', '棚E', '棚F', '棚G', '棚H', '棚I', '棚J'];
+                   this.locations = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+               } else {
+                   this.shelves = [];
+                   this.locations = [];
+               }
             },
             addShelf() {
-                if (this.newShelf) {
-                    this.shelves.push(this.newShelf);
-                    this.newShelf = '';
-                    this.showMessage('棚番号が追加されました。', 'success');
-                } else {
-                    this.showMessage('棚番号を入力してください。', 'error');
-                }
+               if (this.newShelf) {
+                   this.shelves.push(this.newShelf);
+                   this.newShelf = '';
+                   this.showMessage('棚番号が追加されました。', 'success');
+               } else {
+                   this.showMessage('棚番号を入力してください。', 'error');
+               }
             },
             addLocation() {
-                if (this.newLocation) {
-                    this.locations.push(this.newLocation);
-                    this.newLocation = '';
-                    this.showMessage('場所番号が追加されました。', 'success');
-                } else {
-                    this.showMessage('場所番号を入力してください。', 'error');
-                }
+               if (this.newLocation) {
+                   this.locations.push(this.newLocation);
+                   this.newLocation = '';
+                   this.showMessage('場所番号が追加されました。', 'success');
+               } else {
+                   this.showMessage('場所番号を入力してください。', 'error');
+               }
             },
             async addItem() {
                 if (this.newItem.name && this.newItem.stock !== '' && this.newItem.area) {
@@ -347,51 +335,35 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
                 this.selectedLocation = '';
             },
-            addShelf() {
-                if (this.newShelf && !this.shelves.includes(this.newShelf)) {
-                    this.shelves.push(this.newShelf);
-                    this.newShelf = '';
-                } else {
-                    alert('棚番号を入力するか、既に存在する棚番号です。');
-                }
-            },
-            addLocation() {
-                if (this.newLocation && !this.locations.includes(this.newLocation)) {
-                    this.locations.push(this.newLocation);
-                    this.newLocation = '';
-                } else {
-                    alert('場所番号を入力するか、既に存在する場所番号です。');
-                }
-            }
-            },
-            async mounted() {
-                await this.loadData();
-                this.items.forEach(item => {
-                    this.checkStockAlert(item);
-                });
-                console.log('Mounted app with items:', this.items);
-                this.setupDragAndDrop();
-
-                // エリア選択変更時のリスナーを追加
-                this.$watch('newItem.area', this.onAreaChange);
-
-                // 初期データをロード
-                this.updateShelves();
-                this.updateLocations();
-
-                // 関数呼び出し
-                await this.callHelloFunction();
-            },
             async callHelloFunction() {
                 try {
                     const response = await fetch('/.netlify/functions/hello');
                     const data = await response.json();
                     console.log(data.message); // "Hello, World!" と表示されるはずです
                 } catch (error) {
-                   console.error('Error calling hello function:', error);
+                    console.error('Error calling hello function:', error);
                 }
-            },
+            }
+        },
+        async mounted() {
+            await this.loadData();
+            this.items.forEach(item => {
+                this.checkStockAlert(item);
             });
+            console.log('Mounted app with items:', this.items);
+            this.setupDragAndDrop();
 
-            app.mount('#app');
+            // エリア選択変更時のリスナーを追加
+            this.$watch('newItem.area', this.onAreaChange);
+
+            // 初期データをロード
+            this.updateShelves();
+            this.updateLocations();
+
+            // 関数呼び出し
+            await this.callHelloFunction();
+        },
+        });
+
+        app.mount('#app');
         });

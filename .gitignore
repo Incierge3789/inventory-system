@@ -1,3 +1,6 @@
 public/fonts/*
 public/fonts/SF Pro Fonts.pkg
 public/fonts/SF-Pro.dmg
+
+# Local Netlify folder
+.netlify
