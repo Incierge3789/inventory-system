@@ -364,6 +364,18 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             }
             },
+            async function callHelloFunction() {
+                try {
+                    const response = await fetch('/.netlify/functions/hello');
+                    const data = await response.json();
+                    console.log(data.message); // "Hello, World!" と表示されるはずです
+                } catch (error) {
+                    console.error('Error calling hello function:', error);
+                }
+            }
+
+            callHelloFunction();
+
             async mounted() {
                 await this.loadData();
                 this.items.forEach(item => {
