@@ -153,10 +153,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                         const video = this.$refs.video;
                         video.srcObject = stream;
                         video.play();
-                        this.startDetection();
+                        video.onloadedmetadata = () => {
+                            this.startDetection();
+                        };
                     })
                     .catch((err) => {
                         console.error('Error accessing the camera:', err);
+                        alert('カメラへのアクセスに失敗しました。');   
                     });
             },
             closeModal() {
@@ -177,12 +180,40 @@ document.addEventListener('DOMContentLoaded', async function () {
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
                 this.newItem.photo = canvas.toDataURL('image/png');
-                this.previewPhoto = canvas.toDataURL('image/png'); // 追加：プレビュー用の画像データを設定
-                console.log('Captured photo for new item:', this.newItem.photo);
+                this.previewPhoto = this.newItem.photo; // 追加：プレビュー用の画像データを設定
+
+                // 物体検知と赤い枠の描画
+                this.detectObjectsOnPhoto(canvas);
+
                 this.closeModal();
             },
-            startDetection() {
+            async detectObjectsOnPhoto(canvas) {
+                const context = canvas.getContext('2d');
+                const model = await cocoSsd.load();
+                const predictions = await model.detect(canvas);
+        
+                predictions.forEach(prediction => {
+                    const [x, y, width, height] = prediction.bbox;
+                    context.beginPath();
+                    context.rect(x, y, width, height);
+                    context.lineWidth = 2;
+                    context.strokeStyle = 'red';
+                    context.fillStyle = 'red';
+                    context.stroke();
+                    context.fillText(
+                        `${prediction.class} - ${Math.round(prediction.score * 100)}%`,
+                        x,
+                        y > 10 ? y - 5 : 10
+                    );
+                });
+        
+                // 新しい赤い枠が描かれた写真をプレビュー用の画像データに設定
+                this.newItem.photo = canvas.toDataURL('image/png');
+                this.previewPhoto = this.newItem.photo;
+            },
+            async startDetection() {            
                 const video = this.$refs.video;
                 const detectionCanvas = this.$refs.detectionCanvas;
                 const context = detectionCanvas.getContext('2d');
@@ -190,15 +221,33 @@ document.addEventListener('DOMContentLoaded', async function () {
                 detectionCanvas.width = video.videoWidth;
                 detectionCanvas.height = video.videoHeight;
 
-                const detectObjects = () => {
-                    context.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
-                    context.strokeStyle = 'red';
-                    context.lineWidth = 2;
-                    context.strokeRect(100, 100, 200, 200);
-                    requestAnimationFrame(detectObjects);
-                };
+                const model = await cocoSsd.load();
 
-                detectObjects();
+                const detectFrame = async () => {
+                    const predictions = await model.detect(video);
+                    context.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+                    console.log('Predictions:', predictions); // デバッグメッセージ
+                    
+                    predictions.forEach(prediction => {
+                        const [x, y, width, height] = prediction.bbox;
+                        context.beginPath();
+                        context.rect(x, y, width, height);
+                        context.lineWidth = 2;
+                        context.strokeStyle = 'red';
+                        context.fillStyle = 'red';
+                        context.stroke();
+                        console.log('Drawing box:', prediction.bbox); // デバッグメッセージ
+                        context.fillText(
+                            `${prediction.class} - ${Math.round(prediction.score * 100)}%`,
+                            x,
+                            y > 10 ? y - 5 : 10
+                        );
+                    });
+                    console.log('Predictions:', predictions); // 予測結果をコンソールに出力
+
+                    requestAnimationFrame(detectFrame);
+                };
+                detectFrame();
             },
             searchItems() {
                 // computed プロパティが自動的に再評価されるので何もする必要はない

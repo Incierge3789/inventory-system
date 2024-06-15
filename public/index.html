@@ -2,9 +2,23 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://d3js.org 'unsafe-eval'; img-src 'self' data:; style-src 'self' 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://d3js.org 'unsafe-eval'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://storage.googleapis.com;">
     <title>在庫管理システム</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .video-container {
+            position: relative;
+        }
+        video, canvas {
+            width: 100%;
+            height: auto;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -84,13 +98,15 @@
         <!-- カメラモーダル -->
         <div v-if="showModal" class="modal">
             <div class="modal-content">
-                <video ref="video" autoplay></video>
-                <canvas ref="detectionCanvas" class="detection-frame"></canvas>
+                <div class="video-container">
+                    <video ref="video" autoplay></video>
+                    <canvas ref="detectionCanvas" class="detection-frame"></canvas>
+                </div>
                 <button @click="capturePhoto" class="button">撮影</button>
                 <button @click="closeModal" class="button modal-close">キャンセル</button>
             </div>
         </div>
-
+x
         <!-- 説明ガイドモーダル -->
         <div v-if="showGuide" class="guide-modal">
             <div class="guide-content">
@@ -115,7 +131,9 @@
     <button id="toggleTheme">テーマを切り替える</button>
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.37/dist/vue.global.prod.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
     <script src="js/idb.js"></script>
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script> <!-- ここにtype="module"を追加 -->
 </body>
 </html>
