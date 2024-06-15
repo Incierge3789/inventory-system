@@ -394,3 +394,4 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
 
             app.mount('#app');
+        });
