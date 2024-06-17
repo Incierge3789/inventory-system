@@ -213,6 +213,38 @@ button[type="submit"] {
     background-color: #ff3b30;
 }
 
+.modal button:hover {
+    transform: scale(1.05);
+}
+
+/* QRコードとバーコードのモーダルのスタイル */
+.code-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* 中央揃えにするために追加 */
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.code-container canvas {
+    margin-bottom: 10px; /* 下に余白を追加 */
+    max-width: 100%;
+    position: static; /* キャンバスの位置を静的に設定 */
+}
+
+.code-label {
+    font-size: 16px;
+    color: #333;
+    text-align: center; /* テキストを中央揃えに設定 */
+    width: 100%; /* ラベルを全幅に設定 */
+    display: block; /* displayをblockに設定 */
+    margin-top: 10px; /* 上に余白を追加 */
+}
+
 /* 枠のスタイル */
 .detection-frame {
     position: absolute;
@@ -439,10 +471,13 @@ body.dark-mode .axis--y path {
     z-index: 1000;
 }
 
+
+/* ボタン */
 .button-group {
     display: flex;
     gap: 10px;
-    justify-content: flex-end;
+    justify-content: center; /* ボタンを中央揃えに設定 */
+    margin-top: 20px; /* ボタン群の上にマージンを追加 */
 }
 
 .button {
@@ -476,6 +511,20 @@ body.dark-mode .axis--y path {
     background-color: #c42b1c;
 }
 
+.button.toggle-button {
+    background-color: #007aff;
+    color: white;
+}
+
+.button.toggle-button:hover {
+    background-color: #005bb5;
+}
+
+.button.modal-close {
+    background-color: #ff3b30;
+    color: white;
+}
+
 /* チャートのスタイル */
 .chart-container {
     background-color: #f5f5f5; /* 背景色をライトグレーに設定 */
@@ -501,6 +550,35 @@ body.dark-mode .axis--y path {
 
 .text {
     fill: #333; /* テキストの色をダークグレーに設定 */
+}
+
+
+.item-details {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.item-detail {
+    margin-bottom: 10px;
+}
+
+.filter-sort {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+    pointer-events: none;
+    font-size: 12px;
 }
 
 /* テーマ切り替えボタンのスタイル */
@@ -574,3 +652,5 @@ select, input[type="text"] {
     transform: scale(1.05);
     background-color: #005bb5;
 }
+
+

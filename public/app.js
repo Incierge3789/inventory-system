@@ -1,8 +1,14 @@
 document.addEventListener('DOMContentLoaded', async function () {
-    const dbPromise = idb.openDB('inventory-db', 1, {
-        upgrade(db) {
-            db.createObjectStore('items', { keyPath: 'id', autoIncrement: true });
-            db.createObjectStore('nextId', { keyPath: 'id' });
+    const dbPromise = idb.openDB('inventory-db', 2, {
+        upgrade(db, oldVersion, newVersion, transaction) {
+            if (oldVersion < 1) {
+                const itemsStore = db.createObjectStore('items', { keyPath: 'id', autoIncrement: true });
+                db.createObjectStore('nextId', { keyPath: 'id' });
+            }
+            if (oldVersion < 2) {
+                const itemsStore = transaction.objectStore('items');
+                itemsStore.createIndex('productId', 'productId', { unique: true });
+            }
         }
     });
     document.getElementById('toggleTheme').addEventListener('click', function() {
@@ -16,6 +22,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                 newItem: { name: '', stock: 0, photo: '', area: '', shelf: '', location: '' },
                 nextId: 1,
                 searchQuery: '',
+                filterQuery: '',
+                sortOrder: 'asc',
                 selectedArea: '',
                 chart: null,
                 message: '',
@@ -25,20 +33,41 @@ document.addEventListener('DOMContentLoaded', async function () {
                 cameraStream: null,
                 previewPhoto: '', // 追加：プレビュー用の変数
                 shelves: [], // 追加：棚番号のリスト
-                locations: [] // 追加：場所番号のリスト
+                locations: [], // 追加：場所番号のリスト
+                showCodes: false, // 追加: QRコードとバーコードの表示フラグ
+                showQRCode: true, // 追加: QRコードを表示するフラグ
+                currentProductId: null // 追加: 現在表示している商品のID
             };
         },
         computed: {
             filteredItems() {
                 let items = this.items;
+                
+                // 検索クエリによるフィルタリング
                 if (this.searchQuery) {
-                    items = items.filter(item => item.name.toLowerCase().includes(this.searchQuery.toLowerCase()));
+                items = items.filter(item => item.name.toLowerCase().includes(this.searchQuery.toLowerCase()));
                 }
+
+                // 選択されたエリアによるフィルタリング
                 if (this.selectedArea) {
                     items = items.filter(item => item.area === this.selectedArea);
                 }
+
+                // フィルタークエリによるフィルタリング
+                if (this.filterQuery) {
+                    items = items.filter(item => item.name.toLowerCase().includes(this.filterQuery.toLowerCase()));
+                }
+
+                // ソート順序の適用
+                if (this.sortOrder === 'asc') {
+                    items.sort((a, b) => a.stock - b.stock);
+                } else {
+                    items.sort((a, b) => b.stock - a.stock);
+                }
+
                 return items;
             }
+                  
         },
         methods: {
             onAreaChange() {
@@ -71,8 +100,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             },
             async addItem() {
                 if (this.newItem.name && this.newItem.stock !== '' && this.newItem.area) {
+　　　　　　　　　　const productId = this.generateProductId(); // 商品IDを生成
                     const newItem = {
                         id: this.nextId++,
+                        productId: productId, // 追加: 商品ID
                         name: this.newItem.name,
                         stock: parseInt(this.newItem.stock),
                         photo: this.newItem.photo,
@@ -87,11 +118,102 @@ document.addEventListener('DOMContentLoaded', async function () {
                     this.checkStockAlert(newItem);
                     this.renderChart();
                     this.showMessage('部品が追加されました。', 'success');
+                    this.currentProductId = productId; // 追加: 現在の商品のIDを設定
+                    this.showCodes = true; // 追加: QRコードとバーコードを表示する
+                    document.querySelector('#app').classList.add('show-codes'); // クラスを追加
                     console.log('Added item:', newItem);
                     console.log('Current items:', this.items);
+                    
+                    // QRコードとバーコードを生成
+                    console.log('QRコードとバーコードを生成します');
+                    this.$nextTick(async () => { // DOM更新後に実行
+                        await this.generateQRCodeAndBarcode(productId);
+                    });
                 } else {
                     this.showMessage('すべてのフィールドを入力してください。', 'error');
                 }
+            },
+            generateProductId() { // 新しいメソッドの追加
+                // 商品IDを生成するロジック（例: UUIDを生成）
+                return 'product-' + Math.random().toString(36).substr(2, 9);
+            },
+            async generateQRCodeAndBarcode(productId) {
+                // QRコード生成
+                this.$nextTick(() => {
+                    if (this.showQRCode) {
+                        const qrCanvas = document.getElementById('qrCanvas');
+                        if (!qrCanvas) {
+                            console.error('QRコード用のキャンバスが見つかりません');
+                            return;
+                        }
+
+                        qrCanvas.width = 200; // 幅を設定
+                        qrCanvas.height = 200; // 高さを設定
+                        console.log('QRコード用のキャンバスを取得しました:', qrCanvas);
+
+                        QRCode.toCanvas(qrCanvas, productId, (error) => {
+                            if (error) {
+                                console.error('QRコードの生成中にエラーが発生しました:', error);
+                            } else {
+                                console.log('QRコード生成完了');
+                            }
+                        });
+                    } else {
+                        // バーコード生成
+                        const barcodeCanvas = document.getElementById('barcodeCanvas');
+                        if (!barcodeCanvas) {
+                            console.error('バーコード用のキャンバスが見つかりません');
+                            return;
+                        }
+                        barcodeCanvas.width = 400; // 幅を設定
+                        barcodeCanvas.height = 100; // 高さを設定
+                        console.log('バーコード用のキャンバスを取得しました:', barcodeCanvas);
+                        JsBarcode(barcodeCanvas, productId, {
+                            format: "CODE128",
+                            displayValue: true
+                        }, (error) => {
+                            if (error) {
+                                console.error('バーコードの生成中にエラーが発生しました:', error);
+                            } else {
+                                console.log('バーコード生成完了');
+                            } 
+                        });
+                    }
+                });
+            },
+            // QRコードとバーコードの表示を切り替えるメソッド
+            toggleQRCodeBarcode() {
+                // showQRCode フラグを切り替える
+                this.showQRCode = !this.showQRCode;
+                // キャンバスの表示を切り替えた後、再度QRコードまたはバーコードを生成
+                this.$nextTick(async () => {
+                    await this.generateQRCodeAndBarcode(this.currentProductId);
+                });
+            },
+            viewCodes(productId) {
+                this.currentProductId = productId;
+                this.showCodes = true;
+                this.$nextTick(async () => {
+                    await this.generateQRCodeAndBarcode(productId);
+                });
+            },
+            closeCodes() {
+                this.showCodes = false;
+                this.currentProductId = null;
+            },
+            async lookupProduct(productId) { // 新しいメソッドの追加
+                const db = await dbPromise;
+                const tx = db.transaction('items', 'readonly');
+                const store = tx.objectStore('items');
+                const index = store.index('productId'); // 追加: インデックスを使用
+                const product = await index.get(productId);
+
+                if (product) {
+                    this.newItem = product;
+                    this.showMessage(`商品情報が読み込まれました: ${product.name}`, 'success');
+                } else {
+                    this.showMessage('商品が見つかりませんでした。', 'error');
+               }
             },
             async removeItem(id) {
                 this.items = this.items.filter(item => item.id !== id);
@@ -260,8 +382,24 @@ document.addEventListener('DOMContentLoaded', async function () {
                     alert(`${item.name} の在庫がありません！`);
                 }
             },
+            sortItems(order) {
+                this.sortOrder = order;
+            },
             renderChart() {
-                const data = this.filteredItems.map(item => ({ name: item.name, stock: item.stock }));
+                // カラーパレットの定義
+                const colors = ["#007aff", "#34c759", "#ff3b30", "#ffcc00", "#5856d6"];
+
+                // 各部品の合計在庫数を計算
+                const totalStocks = this.filteredItems.reduce((acc, item) => {
+                    const key = item.name;
+                    if (!acc[key]) {
+                        acc[key] = 0;
+                    }
+                    acc[key] += item.stock;
+                    return acc;
+                }, {});
+
+                const data = Object.keys(totalStocks).map(name => ({ name, stock: totalStocks[name] }));
                 const svg = d3.select("#stockChart");
                 if (svg.empty()) {
                     console.error("Element #stockChart not found");
@@ -277,6 +415,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     .attr("transform", `translate(${margin.left},${margin.top})`);
                 x.domain(data.map(d => d.name));
                 y.domain([0, d3.max(data, d => d.stock)]);
+    
                 g.append("g")
                     .attr("class", "axis axis--x")
                     .attr("transform", `translate(0,${height})`)
@@ -291,14 +430,47 @@ document.addEventListener('DOMContentLoaded', async function () {
                     .attr("dy", "0.71em")
                     .attr("text-anchor", "end")
                     .text("在庫数");
-                g.selectAll(".bar")
-                    .data(data)
-                    .enter().append("rect")
+    
+                const bars = g.selectAll(".bar")
+                    .data(data);
+
+                bars.enter().append("rect")
                     .attr("class", "bar")
+                    .attr("x", d => x(d.name))
+                    .attr("y", height)
+                    .attr("width", x.bandwidth())
+                    .attr("height", 0)
+                    .attr("fill", (d, i) => colors[i % colors.length])  // ここでカラーパレットを使用
+                    .merge(bars)
+                    .transition()
+                    .duration(750)
                     .attr("x", d => x(d.name))
                     .attr("y", d => y(d.stock))
                     .attr("width", x.bandwidth())
-                    .attr("height", d => height - y(d.stock));
+                    .attr("height", d => Math.max(0, height - y(d.stock)));
+
+                bars.exit().remove();
+                
+                // ツールチップの追加
+                const tooltip = d3.select("#tooltip");
+                bars.on("mouseover", (event, d) => {
+                    tooltip.style("display", "block")
+                        .html(`部品名: ${d.name}<br>在庫数: ${d.stock}`)
+                        .style("left", `${event.pageX + 5}px`)
+                        .style("top", `${event.pageY - 28}px`);
+                }).on("mouseout", () => {
+                    tooltip.style("display", "none");
+                });
+
+                // 詳細情報の表示
+                const itemDetails = document.getElementById('itemDetails');
+                itemDetails.innerHTML = ''; // 既存の内容をクリア
+                this.filteredItems.forEach(item => {
+                    const detailDiv = document.createElement('div');
+                    detailDiv.classList.add('item-detail');
+                    detailDiv.innerHTML = `<strong>${item.name}</strong>: ${item.stock} (エリア: ${item.area}, 棚: ${item.shelf}, 場所: ${item.location})`;
+                    itemDetails.appendChild(detailDiv);
+                });
             },
             showMessage(message, type) {
                 const messageBox = document.getElementById('feedbackMessage');
