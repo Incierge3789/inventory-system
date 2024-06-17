@@ -36,7 +36,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                 locations: [], // 追加：場所番号のリスト
                 showCodes: false, // 追加: QRコードとバーコードの表示フラグ
                 showQRCode: true, // 追加: QRコードを表示するフラグ
-                currentProductId: null // 追加: 現在表示している商品のID
+                currentProductId: null, // 追加: 現在表示している商品のID
+                cameras: [],
+                selectedCameraIndex: 0
             };
         },
         computed: {
@@ -267,22 +269,56 @@ document.addEventListener('DOMContentLoaded', async function () {
                     this.handleFile(file);
                 });
             },
-            openCamera() {
+            async openCamera() {
                 this.showModal = true;
-                navigator.mediaDevices.getUserMedia({ video: true })
-                    .then((stream) => {
-                        this.cameraStream = stream;
-                        const video = this.$refs.video;
-                        video.srcObject = stream;
-                        video.play();
-                        video.onloadedmetadata = () => {
-                            this.startDetection();
-                        };
-                    })
-                    .catch((err) => {
-                        console.error('Error accessing the camera:', err);
-                        alert('カメラへのアクセスに失敗しました。');   
-                    });
+                await this.getCameras();
+                if (this.cameras.length > 0) {
+                    this.selectedCameraIndex = 0; // デフォルトで最初のカメラを選択
+                    await this.startCamera(this.cameras[this.selectedCameraIndex].deviceId);
+                }
+            },
+            async getCameras() {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    this.cameras = devices.filter(device => device.kind === 'videoinput');
+                } catch (error) {
+                    console.error('Error accessing media devices:', error);
+                }
+            },
+            async startCamera(deviceId) {
+                if (this.cameraStream) {
+                    this.cameraStream.getTracks().forEach(track => track.stop());
+                }
+                const constraints = {
+                    video: {
+                        deviceId: deviceId ? { exact: deviceId } : undefined,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    this.cameraStream = stream;
+                    const video = this.$refs.video;
+                    video.srcObject = stream;
+                    video.play();
+                    video.onloadedmetadata = () => {
+                        const detectionCanvas = this.$refs.detectionCanvas;
+                        detectionCanvas.width = video.videoWidth;
+                        detectionCanvas.height = video.videoHeight;
+                        this.startDetection();
+                    };
+                } catch (error) {
+                    console.error('Error starting camera:', error);
+                    alert('カメラの起動に失敗しました。');
+                }
+            },
+            async toggleCamera() {
+                if (this.cameras.length > 1) {
+                    this.selectedCameraIndex = (this.selectedCameraIndex + 1) % this.cameras.length;
+                    const deviceId = this.cameras[this.selectedCameraIndex].deviceId;
+                    await this.startCamera(deviceId);
+                }
             },
             closeModal() {
                 this.showModal = false;
@@ -583,6 +619,8 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // 関数呼び出し
             await this.callHelloFunction();
+            // カメラ
+            await this.getCameras();
         },
         });
 
