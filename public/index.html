@@ -141,7 +141,8 @@
                     <canvas ref="detectionCanvas" class="detection-frame"></canvas>
                 </div>
                 <div class="button-group">
-                    <button @click="toggleCamera" class="button">カメラを切り替える</button> <!-- カメラ切り替えボタンを追加 -->
+                    <button @click="toggleCamera" class="button">カメラ切替</button> <!-- カメラ切り替えボタンを追加 -->
+                    <button @click="startScan" class="button">スキャン</button>
                     <button @click="capturePhoto" class="button">撮影</button>
                     <button @click="closeModal" class="button modal-close">キャンセル</button>
                 </div>
@@ -171,6 +172,7 @@
     </div>
     <button id="toggleTheme">テーマを切り替える</button>
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.37/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/vue-router@4.3.3/dist/vue-router.global.js"></script> <!-- VueRouterのCDNを修正 -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>

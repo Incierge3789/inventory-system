@@ -15,6 +15,24 @@ document.addEventListener('DOMContentLoaded', async function () {
         document.body.classList.toggle('dark-mode');
     }); 
 
+    const HomeComponent = {
+        template: '<div><h1>Home Page</h1></div>'
+    };
+
+    const ProductComponent = {
+        template: '<div><h1>Product Details</h1><p>Product ID: {{ $route.params.id }}</p></div>'
+    };
+
+    const routes = [
+        { path: '/', component: HomeComponent },
+        { path: '/products/:id', component: ProductComponent }
+    ];
+
+    const router = VueRouter.createRouter({
+        history: VueRouter.createWebHashHistory(),
+        routes
+    });
+
     const app = Vue.createApp({
         data() {
             return {
@@ -38,7 +56,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                 showQRCode: true, // 追加: QRコードを表示するフラグ
                 currentProductId: null, // 追加: 現在表示している商品のID
                 cameras: [],
-                selectedCameraIndex: 0
+                selectedCameraIndex: 0,
+                detecting: false, // 追加: 物体検出の状態を示すフラグ
+                scanning: false
             };
         },
         computed: {
@@ -277,17 +297,58 @@ document.addEventListener('DOMContentLoaded', async function () {
                     await this.startCamera(this.cameras[this.selectedCameraIndex].deviceId);
                 }
             },
-            async getCameras() {
-                try {
-                    const devices = await navigator.mediaDevices.enumerateDevices();
-                    this.cameras = devices.filter(device => device.kind === 'videoinput');
-                } catch (error) {
-                    console.error('Error accessing media devices:', error);
+            // カメラの切り替えメソッド
+            async toggleCamera() {
+                if (this.cameras.length > 1) {
+                    this.selectedCameraIndex = (this.selectedCameraIndex + 1) % this.cameras.length;
+                    await this.startCamera(this.cameras[this.selectedCameraIndex].deviceId);
+                } else {
+                    alert('利用可能なカメラが一つしかありません。');
                 }
             },
+            // スキャン開始メソッド
+            async startScan() {
+                this.scanning = true;
+                const codeReader = new ZXing.BrowserMultiFormatReader();
+                try {
+                    codeReader.decodeFromVideoDevice(this.cameras[this.selectedCameraIndex].deviceId, this.$refs.video, (result, err) => {
+                        if (result) {
+                            this.scanning = false;
+                            codeReader.reset();
+                            this.handleScanResult(result.text); // スキャン結果を処理
+                        }
+                        if (err && !(err instanceof ZXing.NotFoundException)) {
+                            console.error(err);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error starting scan:', error);
+                    alert('スキャンの開始に失敗しました。');
+                }
+            },
+            // スキャン結果を処理するメソッド
+            async handleScanResult(productId) {
+                // 商品IDを使用してデータベースから商品情報を取得
+                const product = this.items.find(item => item.productId === productId);
+                if (product) {
+                    // 商品情報が見つかった場合は詳細ページにリダイレクト
+                    this.showModal = false;
+                    // Vue Routerが設定されているか確認
+                    this.stopCamera(); // カメラを停止する
+                    this.$router.push(`/products/${product.id}`); 
+                } else {
+                    alert('商品が見つかりませんでした。');
+                }
+            },
+            // カメラの取得メソッド
+            async getCameras() {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                this.cameras = devices.filter(device => device.kind === 'videoinput');
+            },
+            // カメラの開始メソッド
             async startCamera(deviceId) {
                 if (this.cameraStream) {
-                    this.cameraStream.getTracks().forEach(track => track.stop());
+                    this.stopCamera(); // 既存のストリームを停止する                   
                 }
                 const constraints = {
                     video: {
@@ -300,36 +361,51 @@ document.addEventListener('DOMContentLoaded', async function () {
                     const stream = await navigator.mediaDevices.getUserMedia(constraints);
                     this.cameraStream = stream;
                     const video = this.$refs.video;
-                    video.srcObject = stream;
-                    video.play();
-                    video.onloadedmetadata = () => {
-                        const detectionCanvas = this.$refs.detectionCanvas;
-                        detectionCanvas.width = video.videoWidth;
-                        detectionCanvas.height = video.videoHeight;
-                        this.startDetection();
-                    };
+                    if (video) {
+                        video.srcObject = stream;
+                        video.play();
+                        video.onloadedmetadata = () => {
+                            // ビデオ要素のサイズをログに出力
+                            console.log('Video dimensions:', video.videoWidth, video.videoHeight);
+ 
+                            const detectionCanvas = this.$refs.detectionCanvas;
+                            if (detectionCanvas) {
+                                detectionCanvas.width = video.videoWidth;
+                                detectionCanvas.height = video.videoHeight;
+                                this.startDetection();
+                            } else {
+                                console.error('detectionCanvas is undefined');
+                            }
+                        };
+                    } else {
+                        console.error('video element is undefined');
+                    }
                 } catch (error) {
                     console.error('Error starting camera:', error);
                     alert('カメラの起動に失敗しました。');
+                    // キャンバスをクリアする
+                    const detectionCanvas = this.$refs.detectionCanvas;
+                    if (detectionCanvas) {
+                        const context = detectionCanvas.getContext('2d');
+                        context.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+                    }
                 }
             },
-            async toggleCamera() {
-                if (this.cameras.length > 1) {
-                    this.selectedCameraIndex = (this.selectedCameraIndex + 1) % this.cameras.length;
-                    const deviceId = this.cameras[this.selectedCameraIndex].deviceId;
-                    await this.startCamera(deviceId);
-                }
-            },
-            closeModal() {
-                this.showModal = false;
+            stopCamera() {
                 if (this.cameraStream) {
                     this.cameraStream.getTracks().forEach(track => track.stop());
                     this.cameraStream = null;
                 }
+            },
+            closeModal() {
+                this.showModal = false;
+                this.stopCamera(); // カメラを停止する
                 if (this.detectionCanvas) {
                     const context = this.detectionCanvas.getContext('2d');
                     context.clearRect(0, 0, this.detectionCanvas.width, this.detectionCanvas.height);
                 }
+                this.detecting = false; // 物体検出を停止
+                this.scanning = false; // スキャンを停止
             },
             capturePhoto() {
                 const video = this.$refs.video;
@@ -371,7 +447,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                 this.newItem.photo = canvas.toDataURL('image/png');
                 this.previewPhoto = this.newItem.photo;
             },
-            async startDetection() {            
+            async startDetection() {
+                this.detecting = true;            
                 const video = this.$refs.video;
                 const detectionCanvas = this.$refs.detectionCanvas;
                 const context = detectionCanvas.getContext('2d');
@@ -380,8 +457,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                 detectionCanvas.height = video.videoHeight;
 
                 const model = await cocoSsd.load();
-
+                
                 const detectFrame = async () => {
+                    if (!this.detecting) return; // 物体検出を停止する条件
+
                     const predictions = await model.detect(video);
                     context.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
                     console.log('Predictions:', predictions); // デバッグメッセージ
@@ -624,5 +703,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         },
         });
 
+        app.use(router); // ルーターを使用
         app.mount('#app');
         });
